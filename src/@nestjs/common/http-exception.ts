@@ -52,3 +52,12 @@ export class RequestTimeoutException extends HttpException {
         }, HttpStatus.BAD_REQUEST)
     }
 }
+
+export class ForbiddenException extends HttpException {
+    constructor(message, error) {
+        super({
+            message, error,
+            statusCode: HttpStatus.FORBIDDEN
+        }, HttpStatus.FORBIDDEN)
+    }
+}

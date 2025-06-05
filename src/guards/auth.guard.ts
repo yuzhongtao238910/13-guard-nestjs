@@ -1,5 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable } from "@nestjs/common"
-import { Observable } from "rxjs";
+// import { Observable } from "rxjs";
 import { Reflector } from "@nestjs/core";
 import { Request } from "express"
 
@@ -18,7 +18,7 @@ export class AuthGuard implements CanActivate {
         private reflector: Reflector
     ) {}
 
-    canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
+    canActivate(context: ExecutionContext): boolean | Promise<boolean> {
 
         const request = context.switchToHttp().getRequest();
 
@@ -31,6 +31,8 @@ export class AuthGuard implements CanActivate {
 
             context.getHandler() 是获取当前的路由处理函数
          */
+
+        // const roles = Reflect.getMetadata("roles", context.getHandler())
         const roles = this.reflector.get("roles", context.getHandler())
 
         console.log(roles, 35)
@@ -52,7 +54,7 @@ export class AuthGuard implements CanActivate {
 
         console.log(req.user, 53)
 
-        return matchRoles(roles, req.user.role)
+        return matchRoles(roles, req.query.role)
     }
     
 

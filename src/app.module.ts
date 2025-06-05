@@ -10,24 +10,24 @@ import { AuthMiddleware } from "./middleware/auth.middleware"
 @Module({
     controllers: [AppController, AccountController],
     providers:[
-        {
-            provide: "PREFIX",
-            useValue: "prefix"
-        },
-        {
-            provide: APP_PIPE,
-            useClass: SimplePipe
-        }
+        // {
+        //     provide: "PREFIX",
+        //     useValue: "prefix"
+        // },
+        // {
+        //     provide: APP_PIPE,
+        //     useClass: SimplePipe
+        // }
     ],
     exports: [
         // AppService
     ]
 })
-// export class AppModule {}
-export class AppModule implements NestModule {
-    configure(consumer: MiddlewareConsumer) {
-        consumer.apply(AuthMiddleware)
-            .forRoutes("*")
-    }
+export class AppModule {}
+// export class AppModule implements NestModule {
+//     configure(consumer: MiddlewareConsumer) {
+//         consumer.apply(AuthMiddleware)
+//             .forRoutes("*")
+//     }
     
-}
+// }

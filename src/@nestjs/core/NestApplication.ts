@@ -8,6 +8,11 @@ import { defineModule } from "../common/module.decorator"
 import { APP_FILTER, DECORATOR_FACTORY, APP_PIPE} from "./constants"
 import { GlobalHttpExceptionFilter } from "../common/http-exception.filter"
 import { PipeTransform } from "@nestjs/common"
+import { ExecutionContext } from "@nestjs/common"
+import { CanActivate } from "@nestjs/common"
+import { ForbiddenException } from "@nestjs/common"
+import { FORBIDDEN_RESOURCE } from "./constants"
+import { Reflector } from "./reflector"
 export class NestApplication {
 
 
@@ -231,7 +236,17 @@ export class NestApplication {
         return {routePath, routeMethod}
     }
 
+    private addDefaultProviders() {
+        // 注册系统内部默认的provider
+        this.addprovider(Reflector, this.module, true)
+    }
+
     async initProviders() {
+
+
+        // 这个是增加了一个默认的provider
+        this.addDefaultProviders()
+
         const imports = Reflect.getOwnMetadata("imports", this.module) ?? []
 
 
@@ -541,6 +556,30 @@ export class NestApplication {
             return null
         }
     }
+
+
+     private getGuardInstance(guard) {
+        if (typeof guard === 'function') {
+            const dependencies = this.resolveDependencies(guard)
+            return new guard(...dependencies)
+        }
+        return guard
+    }
+
+    async callGuards(guards: CanActivate[], context: ExecutionContext) {
+        for (const guard of guards) {
+
+            // 先获取实例哈
+            const guardInstance = this.getGuardInstance(guard)
+
+            const canActive = await guardInstance.canActivate(context)
+            if (!canActive) {
+                throw new ForbiddenException(FORBIDDEN_RESOURCE, "Forbidden")
+            }
+        }
+    }
+
+
     async initController(module) {
         const controllers = Reflect.getOwnMetadata("controllers", module) || []
 
@@ -563,6 +602,12 @@ export class NestApplication {
 
             // 获取控制器上的pipes
             const controllerPipes = Reflect.getOwnMetadata("pipes", Controller) ?? []            
+
+
+            // 获取控制器上的绑定的守卫的数组
+            const controllerGuards = Reflect.getOwnMetadata("guards", Controller) ?? []
+
+
 
 
             for (const methodName of Object.getOwnPropertyNames(controllerPrototype)) {
@@ -592,6 +637,12 @@ export class NestApplication {
 
                 const pipes = [...controllerPipes, ...methodPipes]
 
+
+                // 获取控制器上的绑定的守卫的数组
+                const methodGuards = Reflect.getOwnMetadata("guards", method) ?? []
+
+                const guards = [...controllerGuards, ...methodGuards]
+
                 
 
                 // 如果方法名字不存在，那么就不处理了
@@ -617,8 +668,18 @@ export class NestApplication {
                         }
                     }
 
+                    const context: ExecutionContext = {
+                        ...host,
+                        getClass: () => Controller,
+                        getHandler: () => method
+                    }
+
                     // 这块执行的时候可能会发生错误
                     try {
+
+                        // 在这块执行守卫
+                        await this.callGuards(guards, context);
+
 
 
                         // let a;
