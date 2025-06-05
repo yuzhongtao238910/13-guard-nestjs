@@ -3,6 +3,7 @@ import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module"
 import { CustomExceptionFilter } from "./exception/self-custom-exception.filter"
 import { ValidationPipe } from "@nestjs/common"
+
 // import { loggerFunction } from "./middleware/logger.function.middleware"
 
 // function getMiddleware(val) {
@@ -41,6 +42,17 @@ async function bootstrap() {
 
 
     // app.useGlobalPipes(new ValidationPipe());
+
+
+    /**
+     * 全局守卫在整个应用程序中使用，适用于每个控制器和每个路由处理程序。
+     * 就依赖注入而言，从任何模块外部注册的全局守卫（如上例中的 useGlobalGuards()）无法注入依赖项，
+     * 因为这是在任何模块上下文之外完成的。为了解决这个问题，可以使用以下结构从任何模块中直接设置守卫：
+     */
+    // 全局守卫 在这这块还没办法依赖注入的
+    // app.useGlobalGuards(new AuthGuard2());
+
+    // useGlobalGuards
 
     await app.listen(8080)
 }

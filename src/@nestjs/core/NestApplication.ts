@@ -5,10 +5,10 @@ import { NestMiddleware, RequestMethod, ArgumentsHost, ExceptionFilter } from "@
 
 import { INJECTED_TOKENS, DESGIN_PARAMTYPES } from "../common/constant"
 import { defineModule } from "../common/module.decorator"
-import { APP_FILTER, DECORATOR_FACTORY, APP_PIPE} from "./constants"
+import { APP_FILTER, DECORATOR_FACTORY, APP_PIPE, APP_GUARD} from "./constants"
 import { GlobalHttpExceptionFilter } from "../common/http-exception.filter"
 import { PipeTransform } from "@nestjs/common"
-import { ExecutionContext } from "@nestjs/common"
+import { ExecutionContext } from "../common"
 import { CanActivate } from "@nestjs/common"
 import { ForbiddenException } from "@nestjs/common"
 import { FORBIDDEN_RESOURCE } from "./constants"
@@ -54,6 +54,9 @@ export class NestApplication {
 
     // 这里存放着全局管道
     private readonly globalPipes: PipeTransform[] = []
+
+    // 这里存放着全局守卫
+    private readonly globalGuards: CanActivate[] = []
     
 
 
@@ -641,7 +644,7 @@ export class NestApplication {
                 // 获取控制器上的绑定的守卫的数组
                 const methodGuards = Reflect.getOwnMetadata("guards", method) ?? []
 
-                const guards = [...controllerGuards, ...methodGuards]
+                const guards = [...this.globalGuards, ...controllerGuards, ...methodGuards]
 
                 
 
@@ -924,6 +927,22 @@ export class NestApplication {
         }
     }
 
+    private async initGlobalGuards() {
+        const providers = Reflect.getMetadata("providers", this.module) ?? []
+    
+        for (const provider of providers) {
+            if (provider.provide && provider.provide === APP_GUARD) {
+                const providerInstance = this.getProviderByToken(APP_GUARD, this.module)
+
+                this.useGlobalGuards(providerInstance)
+            }
+        }
+    }
+
+    useGlobalGuards(...guards: CanActivate[]) {
+        this.globalGuards.push(...guards)
+    }
+
     async listen(port: number) {
         // 在这块支持异步
         await this.initProviders()
@@ -931,6 +950,9 @@ export class NestApplication {
         await this.initGlobalFilters(); // 初始化全局的过滤器，为了可以使全局的过滤器具有依赖注入的功能哈
 
         await this.initGlobalPipes(); // 初始化全局的管道哈
+
+        await this.initGlobalGuards(); // 初始化全局的守卫哈
+
         await this.initController(this.module)
         // 调用express实例的listen方法启动一个express的app服务器，监听port端口
         this.app.listen(port, () => {
