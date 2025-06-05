@@ -28,3 +28,5 @@ export * from "./use-guards.decorator"
 
 export * from "./can-activate.interface"
 export * from "./execution-context.interface"
+
+export * from "./set-metadata.decorator"
